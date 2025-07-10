@@ -7,9 +7,7 @@ class BaseController:
     """
 
     def handle_not_found(self, message: str = "Resource not found"):
-
         raise HTTPException(status_code=404, detail=message)
 
     def handle_bad_request(self, message: str = "Bad request"):
-
         raise HTTPException(status_code=400, detail=message)
