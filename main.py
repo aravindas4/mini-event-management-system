@@ -16,9 +16,10 @@ load_dotenv()
 
 # Setup logging
 app_settings = AppSettings()
-setup_logging(app_settings.APP_ENV if hasattr(app_settings, 'APP_ENV') else "INFO")
+setup_logging(app_settings.APP_ENV if hasattr(app_settings, "APP_ENV") else "INFO")
 
 logger = logging.getLogger("event_management.main")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,6 +29,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: Database cleanup
     logger.info("Shutting down Mini Event Management System")
+
 
 app = FastAPI(
     title="Mini Event Management System",
@@ -53,26 +55,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Health check endpoint
 @app.get("/health-check")
 def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "Mini Event Management System"}
 
+
 # Include routers
 from app.events.routes import events_router
+
 app.include_router(events_router)
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
-    
+
     uvicorn.run(
         "main:app",
         host=host,
         port=port,
         reload=True if os.getenv("APP_ENV") == "development" else False,
-        log_level="debug" if os.getenv("DEBUG") == "true" else "info"
+        log_level="debug" if os.getenv("DEBUG") == "true" else "info",
     )

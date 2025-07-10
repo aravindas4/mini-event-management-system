@@ -5,7 +5,12 @@ from unittest.mock import Mock, AsyncMock
 from app.events.services.event_service import EventService
 from app.events.models.event import Event
 from app.events.models.attendee import Attendee
-from app.core.exceptions import EventNotFound, CapacityExceeded, DuplicateRegistration, ValidationError
+from app.core.exceptions import (
+    EventNotFound,
+    CapacityExceeded,
+    DuplicateRegistration,
+    ValidationError,
+)
 
 
 class TestEventService:
@@ -37,18 +42,18 @@ class TestEventService:
             "location": "Mumbai",
             "start_time": datetime.now() + timedelta(days=30),
             "end_time": datetime.now() + timedelta(days=30, hours=8),
-            "max_capacity": 100
+            "max_capacity": 100,
         }
-        
+
         expected_event = Event(**event_data)
         expected_event.id = 1
         expected_event.created_at = datetime.now()
         expected_event.updated_at = datetime.now()
         mock_repository.create_event.return_value = expected_event
-        
+
         # Act
         result = await service.create_event(event_data)
-        
+
         # Assert
         mock_repository.create_event.assert_called_once_with(event_data)
         assert result == expected_event
@@ -63,9 +68,9 @@ class TestEventService:
             "location": "Mumbai",
             "start_time": datetime.now() + timedelta(days=30),
             "end_time": datetime.now() + timedelta(days=30, hours=8),
-            "max_capacity": 100
+            "max_capacity": 100,
         }
-        
+
         # Act & Assert
         with pytest.raises(ValidationError, match="Event name cannot be empty"):
             await service.create_event(event_data)
@@ -79,11 +84,13 @@ class TestEventService:
             "location": "Mumbai",
             "start_time": datetime.now() - timedelta(days=1),  # Past date
             "end_time": datetime.now() + timedelta(hours=8),
-            "max_capacity": 100
+            "max_capacity": 100,
         }
-        
+
         # Act & Assert
-        with pytest.raises(ValidationError, match="Event start time cannot be in the past"):
+        with pytest.raises(
+            ValidationError, match="Event start time cannot be in the past"
+        ):
             await service.create_event(event_data)
 
     @pytest.mark.asyncio
@@ -95,33 +102,47 @@ class TestEventService:
             "location": "Mumbai",
             "start_time": datetime.now() + timedelta(days=30),
             "end_time": datetime.now() + timedelta(days=29),  # Before start
-            "max_capacity": 100
+            "max_capacity": 100,
         }
-        
+
         # Act & Assert
-        with pytest.raises(ValidationError, match="Event end time must be after start time"):
+        with pytest.raises(
+            ValidationError, match="Event end time must be after start time"
+        ):
             await service.create_event(event_data)
 
     @pytest.mark.asyncio
     async def test_get_upcoming_events_success(self, service, mock_repository):
         """Test successful retrieval of upcoming events"""
         # Arrange
-        event1 = Event(id=1, name="Event 1", location="Location 1", start_time=datetime.now() + timedelta(days=1), 
-                      end_time=datetime.now() + timedelta(days=1, hours=2), max_capacity=50)
+        event1 = Event(
+            id=1,
+            name="Event 1",
+            location="Location 1",
+            start_time=datetime.now() + timedelta(days=1),
+            end_time=datetime.now() + timedelta(days=1, hours=2),
+            max_capacity=50,
+        )
         event1.created_at = datetime.now()
         event1.updated_at = datetime.now()
-        
-        event2 = Event(id=2, name="Event 2", location="Location 2", start_time=datetime.now() + timedelta(days=2), 
-                      end_time=datetime.now() + timedelta(days=2, hours=2), max_capacity=100)
+
+        event2 = Event(
+            id=2,
+            name="Event 2",
+            location="Location 2",
+            start_time=datetime.now() + timedelta(days=2),
+            end_time=datetime.now() + timedelta(days=2, hours=2),
+            max_capacity=100,
+        )
         event2.created_at = datetime.now()
         event2.updated_at = datetime.now()
-        
+
         expected_events = [event1, event2]
         mock_repository.get_upcoming_events.return_value = expected_events
-        
+
         # Act
         result = await service.get_upcoming_events(limit=10, offset=0)
-        
+
         # Assert
         mock_repository.get_upcoming_events.assert_called_once_with(limit=10, offset=0)
         assert result == expected_events
@@ -133,16 +154,18 @@ class TestEventService:
         # Arrange
         event_id = 1
         attendee_data = {"name": "John Doe", "email": "john@example.com"}
-        
+
         expected_attendee = Attendee(id=1, event_id=event_id, **attendee_data)
         expected_attendee.registered_at = datetime.now()
         mock_repository.register_attendee.return_value = expected_attendee
-        
+
         # Act
         result = await service.register_attendee(event_id, attendee_data)
-        
+
         # Assert
-        mock_repository.register_attendee.assert_called_once_with(event_id, attendee_data)
+        mock_repository.register_attendee.assert_called_once_with(
+            event_id, attendee_data
+        )
         assert result == expected_attendee
         assert result.event_id == event_id
 
@@ -152,9 +175,11 @@ class TestEventService:
         # Arrange
         event_id = 999
         attendee_data = {"name": "John Doe", "email": "john@example.com"}
-        
-        mock_repository.register_attendee.side_effect = EventNotFound(f"Event with id {event_id} not found")
-        
+
+        mock_repository.register_attendee.side_effect = EventNotFound(
+            f"Event with id {event_id} not found"
+        )
+
         # Act & Assert
         with pytest.raises(EventNotFound):
             await service.register_attendee(event_id, attendee_data)
@@ -165,22 +190,28 @@ class TestEventService:
         # Arrange
         event_id = 1
         attendee_data = {"name": "John Doe", "email": "john@example.com"}
-        
-        mock_repository.register_attendee.side_effect = CapacityExceeded("Event is at maximum capacity")
-        
+
+        mock_repository.register_attendee.side_effect = CapacityExceeded(
+            "Event is at maximum capacity"
+        )
+
         # Act & Assert
         with pytest.raises(CapacityExceeded):
             await service.register_attendee(event_id, attendee_data)
 
     @pytest.mark.asyncio
-    async def test_register_attendee_duplicate_registration(self, service, mock_repository):
+    async def test_register_attendee_duplicate_registration(
+        self, service, mock_repository
+    ):
         """Test duplicate attendee registration"""
         # Arrange
         event_id = 1
         attendee_data = {"name": "John Doe", "email": "john@example.com"}
-        
-        mock_repository.register_attendee.side_effect = DuplicateRegistration("Attendee already registered for this event")
-        
+
+        mock_repository.register_attendee.side_effect = DuplicateRegistration(
+            "Attendee already registered for this event"
+        )
+
         # Act & Assert
         with pytest.raises(DuplicateRegistration):
             await service.register_attendee(event_id, attendee_data)
@@ -190,20 +221,26 @@ class TestEventService:
         """Test successful retrieval of event attendees"""
         # Arrange
         event_id = 1
-        attendee1 = Attendee(id=1, event_id=event_id, name="John Doe", email="john@example.com")
+        attendee1 = Attendee(
+            id=1, event_id=event_id, name="John Doe", email="john@example.com"
+        )
         attendee1.registered_at = datetime.now()
-        
-        attendee2 = Attendee(id=2, event_id=event_id, name="Jane Smith", email="jane@example.com")
+
+        attendee2 = Attendee(
+            id=2, event_id=event_id, name="Jane Smith", email="jane@example.com"
+        )
         attendee2.registered_at = datetime.now()
-        
+
         expected_attendees = [attendee1, attendee2]
         mock_repository.get_event_attendees.return_value = expected_attendees
-        
+
         # Act
         result = await service.get_event_attendees(event_id, limit=50, offset=0)
-        
+
         # Assert
-        mock_repository.get_event_attendees.assert_called_once_with(event_id, limit=50, offset=0)
+        mock_repository.get_event_attendees.assert_called_once_with(
+            event_id, limit=50, offset=0
+        )
         assert result == expected_attendees
         assert len(result) == 2
 
@@ -212,8 +249,10 @@ class TestEventService:
         """Test getting attendees for non-existent event"""
         # Arrange
         event_id = 999
-        mock_repository.get_event_attendees.side_effect = EventNotFound(f"Event with id {event_id} not found")
-        
+        mock_repository.get_event_attendees.side_effect = EventNotFound(
+            f"Event with id {event_id} not found"
+        )
+
         # Act & Assert
         with pytest.raises(EventNotFound):
             await service.get_event_attendees(event_id, limit=50, offset=0)

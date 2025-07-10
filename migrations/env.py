@@ -24,14 +24,16 @@ if config.config_file_name is not None:
 try:
     # Import base metadata and all models
     from app.core.models import Base
+
     # Import all models to ensure they're registered with Base.metadata
     from app.events.models.event import Event
     from app.events.models.attendee import Attendee
-    
+
     target_metadata = Base.metadata
 except ImportError:
     # If models don't exist yet, use None
     target_metadata = None
+
 
 # Override the database URL with our configuration
 def get_database_url():
@@ -39,7 +41,7 @@ def get_database_url():
     # Try environment variable first (for Docker)
     if os.getenv("MYSQL_HOST"):
         mysql_user = os.getenv("MYSQL_USER", "mes_user")
-        mysql_password = os.getenv("MYSQL_PASSWORD", "mes_password") 
+        mysql_password = os.getenv("MYSQL_PASSWORD", "mes_password")
         mysql_host = os.getenv("MYSQL_HOST", "localhost")
         mysql_port = os.getenv("MYSQL_PORT", "3306")
         mysql_database = os.getenv("MYSQL_DATABASE", "event_management")
@@ -47,6 +49,7 @@ def get_database_url():
     else:
         # Use configuration from settings
         return db_settings.primary.url()
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -84,7 +87,7 @@ def run_migrations_online() -> None:
     # Override the sqlalchemy.url in config
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_database_url()
-    
+
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
